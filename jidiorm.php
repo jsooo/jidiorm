@@ -112,7 +112,8 @@
      * @method bool isNew()
      */
 
-    class ORM implements ArrayAccess {
+    class ORM implements ArrayAccess
+    {
 
         // ----------------------- //
         // --- CLASS CONSTANTS --- //
@@ -120,7 +121,7 @@
 
         // WHERE and HAVING condition array keys
         const CONDITION_FRAGMENT = 0;
-        const CONDITION_VALUES = 1;
+        const CONDITION_VALUES   = 1;
 
         const DEFAULT_CONNECTION = 'default';
 
@@ -134,20 +135,20 @@
 
         // Class configuration
         protected static $_default_config = array(
-            'connection_string' => 'sqlite::memory:',
-            'id_column' => 'id',
-            'id_column_overrides' => array(),
-            'error_mode' => PDO::ERRMODE_EXCEPTION,
-            'username' => null,
-            'password' => null,
-            'driver_options' => null,
+            'connection_string'          => 'sqlite::memory:',
+            'id_column'                  => 'id',
+            'id_column_overrides'        => array(),
+            'error_mode'                 => PDO::ERRMODE_EXCEPTION,
+            'username'                   => null,
+            'password'                   => null,
+            'driver_options'             => null,
             'identifier_quote_character' => null, // if this is null, will be autodetected
-            'limit_clause_style' => null, // if this is null, will be autodetected
-            'logging' => false,
-            'logger' => null,
-            'caching' => false,
-            'caching_auto_clear' => false,
-            'return_result_sets' => false,
+            'limit_clause_style'         => null, // if this is null, will be autodetected
+            'logging'                    => false,
+            'logger'                     => null,
+            'caching'                    => false,
+            'caching_auto_clear'         => false,
+            'return_result_sets'         => false,
         );
 
         // Map of configuration settings
@@ -167,6 +168,9 @@
 
         // Reference to previously used PDOStatement object to enable low-level access, if needed
         protected static $_last_statement = null;
+
+        // Reconnect Flag, only reconnect once.
+        private static $_reconnectPdo = false;
 
         // --------------------------- //
         // --- INSTANCE PROPERTIES --- //
@@ -253,11 +257,13 @@
          * required to use Idiorm). If you have more than one setting
          * you wish to configure, another shortcut is to pass an array
          * of settings (and omit the second argument).
+         *
          * @param string|array $key
-         * @param mixed $value
-         * @param string $connection_name Which connection to use
+         * @param mixed        $value
+         * @param string       $connection_name Which connection to use
          */
-        public static function configure($key, $value = null, $connection_name = self::DEFAULT_CONNECTION) {
+        public static function configure($key, $value = null, $connection_name = self::DEFAULT_CONNECTION)
+        {
             self::_setup_db_config($connection_name); //ensures at least default config is set
 
             if (is_array($key)) {
@@ -279,10 +285,12 @@
 
         /**
          * Retrieve configuration options by key, or as whole array.
+         *
          * @param string $key
          * @param string $connection_name Which connection to use
          */
-        public static function get_config($key = null, $connection_name = self::DEFAULT_CONNECTION) {
+        public static function get_config($key = null, $connection_name = self::DEFAULT_CONNECTION)
+        {
             if ($key) {
                 return self::$_config[$connection_name][$key];
             } else {
@@ -293,52 +301,51 @@
         /**
          * Delete all configs in _config array.
          */
-        public static function reset_config() {
+        public static function reset_config()
+        {
             self::$_config = array();
         }
-        
+
         /**
          * Despite its slightly odd name, this is actually the factory
          * method used to acquire instances of the class. It is named
          * this way for the sake of a readable interface, ie
          * ORM::for_table('table_name')->find_one()-> etc. As such,
          * this will normally be the first method called in a chain.
+         *
          * @param string $table_name
          * @param string $connection_name Which connection to use
          * @return ORM
          */
-        public static function for_table($table_name, $connection_name = self::DEFAULT_CONNECTION) {
+        public static function for_table($table_name, $connection_name = self::DEFAULT_CONNECTION)
+        {
             self::_setup_db($connection_name);
             return new self($table_name, array(), $connection_name);
         }
 
         /**
          * Set up the database connection used by the class
+         *
          * @param string $connection_name Which connection to use
          */
-        protected static function _setup_db($connection_name = self::DEFAULT_CONNECTION) {
-            if (!array_key_exists($connection_name, self::$_db) ||
+        protected static function _setup_db($connection_name = self::DEFAULT_CONNECTION)
+        {
+            if (isset(self::$_db[$connection_name]) ||
                 !is_object(self::$_db[$connection_name])) {
                 self::_setup_db_config($connection_name);
 
-                $db = new PDO(
-                    self::$_config[$connection_name]['connection_string'],
-                    self::$_config[$connection_name]['username'],
-                    self::$_config[$connection_name]['password'],
-                    self::$_config[$connection_name]['driver_options']
-                );
-
-                $db->setAttribute(PDO::ATTR_ERRMODE, self::$_config[$connection_name]['error_mode']);
-                self::set_db($db, $connection_name);
+                self::connect_db($connection_name);
             }
         }
 
-       /**
-        * Ensures configuration (multiple connections) is at least set to default.
-        * @param string $connection_name Which connection to use
-        */
-        protected static function _setup_db_config($connection_name) {
-            if (!array_key_exists($connection_name, self::$_config)) {
+        /**
+         * Ensures configuration (multiple connections) is at least set to default.
+         *
+         * @param string $connection_name Which connection to use
+         */
+        protected static function _setup_db_config($connection_name)
+        {
+            if (isset(self::$_config[$connection_name])) {
                 self::$_config[$connection_name] = self::$_default_config;
             }
         }
@@ -348,13 +355,15 @@
          * This is public in case the ORM should use a ready-instantiated
          * PDO object as its database connection. Accepts an optional string key
          * to identify the connection if multiple connections are used.
-         * @param PDO $db
+         *
+         * @param PDO    $db
          * @param string $connection_name Which connection to use
          */
-        public static function set_db($db, $connection_name = self::DEFAULT_CONNECTION) {
+        public static function set_db($db, $connection_name = self::DEFAULT_CONNECTION)
+        {
             self::_setup_db_config($connection_name);
             self::$_db[$connection_name] = $db;
-            if(!is_null(self::$_db[$connection_name])) {
+            if (!is_null(self::$_db[$connection_name])) {
                 self::_setup_identifier_quote_character($connection_name);
                 self::_setup_limit_clause_style($connection_name);
             }
@@ -363,10 +372,39 @@
         /**
          * Close and delete all registered PDO objects in _db array.
          */
-        public static function reset_db() {
+        public static function reset_db()
+        {
             self::$_db = null;
 
             self::$_db = array();
+        }
+
+        /**
+         * Close and delete one PDO objects in _db array.
+         */
+        public static function close_db($connection_name)
+        {
+            if (isset(self::$_db[$connection_name])) {
+                unset(self::$_db[$connection_name]);
+            }
+        }
+
+        public static function connect_db($connection_name)
+        {
+            $db = new PDO(
+                self::$_config[$connection_name]['connection_string'],
+                self::$_config[$connection_name]['username'],
+                self::$_config[$connection_name]['password'],
+                self::$_config[$connection_name]['driver_options']
+            );
+
+            $db->setAttribute(PDO::ATTR_ERRMODE, self::$_config[$connection_name]['error_mode']);
+            self::set_db($db, $connection_name);
+        }
+
+        public static function reconnect_db($connection_name) {
+            self::close_db($connection_name);
+            self::connect_db($connection_name);
         }
 
         /**
@@ -484,25 +522,47 @@
         * @return bool Response of PDOStatement::execute()
         */
         protected static function _execute($query, $parameters = array(), $connection_name = self::DEFAULT_CONNECTION) {
-            $statement = self::get_db($connection_name)->prepare($query);
-            self::$_last_statement = $statement;
-            $time = microtime(true);
+            try {
+                $statement = self::get_db($connection_name);
+                $statement = $statement->prepare($query);
+                self::$_last_statement = $statement;
+                $time = microtime(true);
 
-            foreach ($parameters as $key => &$param) {
-                if (is_null($param)) {
-                    $type = PDO::PARAM_NULL;
-                } else if (is_bool($param)) {
-                    $type = PDO::PARAM_BOOL;
-                } else if (is_int($param)) {
-                    $type = PDO::PARAM_INT;
-                } else {
-                    $type = PDO::PARAM_STR;
+                foreach ($parameters as $key => &$param) {
+                    if (is_null($param)) {
+                        $type = PDO::PARAM_NULL;
+                    } else if (is_bool($param)) {
+                        $type = PDO::PARAM_BOOL;
+                    } else if (is_int($param)) {
+                        $type = PDO::PARAM_INT;
+                    } else {
+                        $type = PDO::PARAM_STR;
+                    }
+                    $statement->bindParam(is_int($key) ? ++$key : $key, $param, $type);
                 }
 
-                $statement->bindParam(is_int($key) ? ++$key : $key, $param, $type);
+                $q = $statement->execute();
+            } catch (PDOException $e) {
+                /*
+                 * When execute return false, it need to check errorCode, if mysql has gone away reconnect.
+                 */
+                if (!$q) {
+                    $errCode = $statement->errorInfo()[1] ?? 0;
+                    $errMsg = $statement->errorInfo()[2] ?? '';
+
+                    \Log::info('jidiorm error:', ['code' => $errCode, 'message' => $errMsg]);
+                    if ($errCode == 2006 || $errCode == 2013) {
+                        if (!self::$_reconnectPdo) {
+                            self::$_reconnectPdo = true;
+                            self::reconnect_db($connection_name);
+                            self::_execute($query. $parameters, $connection_name);
+                        } else {
+                            self::$_reconnectPdo = false;
+                        }
+                    }
+                }
             }
 
-            $q = $statement->execute();
             self::_log_query($query, $parameters, $connection_name, (microtime(true)-$time));
 
             return $q;
@@ -1244,7 +1304,7 @@
                 $db_fields = array();
                 foreach($fields as $key => $value) {
                     // Process expression fields directly into the query
-                    if(array_key_exists($key, $this->_expr_fields)) {
+                    if(!isset($this->_expr_fields[$key])) {
                         $db_fields[] = $value;
                     } else {
                         $db_fields[] = '?';
@@ -2050,7 +2110,7 @@
          * object was saved.
          */
         public function is_dirty($key) {
-            return array_key_exists($key, $this->_dirty_fields);
+            return !isset($this->_dirty_fields[$key]);
         }
 
         /**
@@ -2148,7 +2208,7 @@
 
             $field_list = array();
             foreach ($this->_dirty_fields as $key => $value) {
-                if(!array_key_exists($key, $this->_expr_fields)) {
+                if(isset($this->_expr_fields[$key])) {
                     $value = '?';
                 }
                 $field_list[] = "{$this->_quote_identifier($key)} = $value";
@@ -2210,7 +2270,7 @@
         // --------------------- //
 
         public function offsetExists($key) {
-            return array_key_exists($key, $this->_data);
+            return !isset($this->_data[$key]);
         }
 
         public function offsetGet($key) {

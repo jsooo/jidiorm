@@ -1,12 +1,12 @@
 {
-    "name": "j4mie/idiorm",
+    "name": "jsooo/jidiorm",
     "type": "library",
-    "description": "A lightweight nearly-zero-configuration object-relational mapper and fluent query builder for PHP5",
-    "keywords": ["idiorm", "orm", "query builder"],
+    "description": "A lightweight nearly-zero-configuration object-relational mapper and fluent query builder for PHP7",
+    "keywords": ["idiorm", "orm", "query builder", "jidiorm"],
     "homepage": "http://j4mie.github.com/idiormandparis",
     "support": {
-        "issues": "https://github.com/j4mie/idiorm/issues",
-        "source": "https://github.com/j4mie/idiorm"
+        "issues": "https://github.com/jsooo/jidiorm/issues",
+        "source": "https://github.com/jsooo/jidiorm"
     },
     "authors": [
         {
@@ -26,6 +26,12 @@
             "email": "me@durhamhale.com",
             "homepage": "http://durhamhale.com",
             "role": "Maintainer"
+        },
+        {
+            "name": "Johnson Wang",
+            "email": "wjsh1119@gmail.com",
+            "homepage": "",
+            "role": "Developer"
         }
     ],
     "scripts": {
@@ -41,9 +47,9 @@
         "BSD-4-Clause"
     ],
     "require": {
-        "php": ">=5.2.0"
+        "php": ">=5.6.0"
     },
     "autoload": {
-        "classmap": ["idiorm.php"]
+        "classmap": ["jidiorm.php"]
     }
 }
