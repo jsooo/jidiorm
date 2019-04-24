@@ -1,4 +1,12 @@
-Idiorm
+### 本项目 基于原有idiorm进行更新，感谢j4mie的贡献
+
+Feature
+--------
+
+1. 当PDO连接出现`MySQL has gone away`时自动重连机制。
+
+
+JIdiorm
 ======
 
 [![Build Status](https://travis-ci.org/j4mie/idiorm.png?branch=master)](https://travis-ci.org/j4mie/idiorm) [![Latest Stable Version](https://poser.pugx.org/j4mie/idiorm/v/stable.png)](https://packagist.org/packages/j4mie/idiorm) [![Total Downloads](https://poser.pugx.org/j4mie/idiorm/downloads.png)](https://packagist.org/packages/j4mie/idiorm) [![Code Climate](https://codeclimate.com/github/j4mie/idiorm/badges/gpa.svg)](https://codeclimate.com/github/j4mie/idiorm)
