@@ -328,7 +328,7 @@ class ORM implements ArrayAccess
      */
     protected static function _setup_db($connection_name = self::DEFAULT_CONNECTION)
     {
-        if (isset(self::$_db[$connection_name]) ||
+        if (!isset(self::$_db[$connection_name]) ||
             !is_object(self::$_db[$connection_name])) {
             self::_setup_db_config($connection_name);
 
@@ -343,7 +343,7 @@ class ORM implements ArrayAccess
      */
     protected static function _setup_db_config($connection_name)
     {
-        if (isset(self::$_config[$connection_name])) {
+        if (!isset(self::$_config[$connection_name])) {
             self::$_config[$connection_name] = self::$_default_config;
         }
     }
@@ -1379,7 +1379,7 @@ class ORM implements ArrayAccess
             $db_fields = array();
             foreach ($fields as $key => $value) {
                 // Process expression fields directly into the query
-                if (!isset($this->_expr_fields[$key])) {
+                if (isset($this->_expr_fields[$key])) {
                     $db_fields[] = $value;
                 } else {
                     $db_fields[] = '?';
@@ -2258,7 +2258,7 @@ class ORM implements ArrayAccess
      */
     public function is_dirty($key)
     {
-        return !isset($this->_dirty_fields[$key]);
+        return isset($this->_dirty_fields[$key]);
     }
 
     /**
@@ -2360,7 +2360,7 @@ class ORM implements ArrayAccess
 
         $field_list = array();
         foreach ($this->_dirty_fields as $key => $value) {
-            if (isset($this->_expr_fields[$key])) {
+            if (!isset($this->_expr_fields[$key])) {
                 $value = '?';
             }
             $field_list[] = "{$this->_quote_identifier($key)} = $value";
@@ -2426,7 +2426,7 @@ class ORM implements ArrayAccess
 
     public function offsetExists($key)
     {
-        return !isset($this->_data[$key]);
+        return isset($this->_data[$key]);
     }
 
     public function offsetGet($key)
