@@ -4,6 +4,7 @@ Feature
 --------
 
 1. 当PDO连接出现`MySQL has gone away`时自动重连机制。
+2. 针对老语法进行了简单的调整，使用了部分7.0以上语法，composer最低支持版本调整至7.0.0+
 
 
 JIdiorm

@@ -169,8 +169,8 @@
         // Reference to previously used PDOStatement object to enable low-level access, if needed
         protected static $_last_statement = null;
 
-        // Reconnect Flag, only reconnect once.
-        private static $_reconnectPdo = false;
+        // Driver Name
+        protected static $_driver_name = '';
 
         // --------------------------- //
         // --- INSTANCE PROPERTIES --- //
@@ -385,10 +385,14 @@
         public static function close_db($connection_name)
         {
             if (isset(self::$_db[$connection_name])) {
+                self::$_db[$connection_name] = null;
                 unset(self::$_db[$connection_name]);
             }
         }
 
+        /*
+         * Connect DB
+         */
         public static function connect_db($connection_name)
         {
             $db = new PDO(
@@ -402,9 +406,27 @@
             self::set_db($db, $connection_name);
         }
 
+        /*
+         * Reconnect DB
+         */
         public static function reconnect_db($connection_name) {
             self::close_db($connection_name);
             self::connect_db($connection_name);
+        }
+
+        /*
+         * Get driver name
+         *
+         * @param string $connection_name Which connection to use
+         * @return driver_name
+         */
+        public static function getDriverName($connection_name) {
+            if (empty(self::$_driver_name) && self::$_config[$connection_name]['connection_string']) {
+                $d = explode(':', self::$_config[$connection_name]['connection_string']);
+                self::$_driver_name = $d[0] ?? '';
+            }
+
+            return self::$_driver_name;
         }
 
         /**
@@ -521,7 +543,7 @@
         * @param string $connection_name Which connection to use
         * @return bool Response of PDOStatement::execute()
         */
-        protected static function _execute($query, $parameters = array(), $connection_name = self::DEFAULT_CONNECTION) {
+        protected static function _execute($query, $parameters = array(), $connection_name = self::DEFAULT_CONNECTION, $retryTimes = 0) {
             try {
                 $statement = self::get_db($connection_name);
                 $statement = $statement->prepare($query);
@@ -546,20 +568,15 @@
                 /*
                  * When execute return false, it need to check errorCode, if mysql has gone away reconnect.
                  */
-                if (!$q) {
-                    $errCode = $statement->errorInfo()[1] ?? 0;
-                    $errMsg = $statement->errorInfo()[2] ?? '';
+                $errCode = $statement->errorInfo()[1] ?? 0;
+                $errMsg = $statement->errorInfo()[2] ?? '';
 
-                    \Log::info('jidiorm error:', ['code' => $errCode, 'message' => $errMsg]);
-                    if ($errCode == 2006 || $errCode == 2013) {
-                        if (!self::$_reconnectPdo) {
-                            self::$_reconnectPdo = true;
-                            self::reconnect_db($connection_name);
-                            self::_execute($query. $parameters, $connection_name);
-                        } else {
-                            self::$_reconnectPdo = false;
-                        }
-                    }
+                \Log::info('jidiorm error:', ['code' => $errCode, 'message' => $errMsg, 'driverName' => self::getDriverName($connection_name)]);
+                if (($errCode == 2006 || $errCode == 2013) && $retryTimes == 0 && self::getDriverName($connection_name) == 'mysql') {
+                    self::reconnect_db($connection_name);
+                    self::_execute($query. $parameters, $connection_name, 1);
+                } else {
+                    throw $e;
                 }
             }
 
