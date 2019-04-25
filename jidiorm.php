@@ -169,9 +169,6 @@
         // Reference to previously used PDOStatement object to enable low-level access, if needed
         protected static $_last_statement = null;
 
-        // Driver Name
-        protected static $_driver_name = '';
-
         // --------------------------- //
         // --- INSTANCE PROPERTIES --- //
         // --------------------------- //
@@ -414,21 +411,6 @@
             self::connect_db($connection_name);
         }
 
-        /*
-         * Get driver name
-         *
-         * @param string $connection_name Which connection to use
-         * @return driver_name
-         */
-        public static function getDriverName($connection_name) {
-            if (empty(self::$_driver_name) && self::$_config[$connection_name]['connection_string']) {
-                $d = explode(':', self::$_config[$connection_name]['connection_string']);
-                self::$_driver_name = $d[0] ?? '';
-            }
-
-            return self::$_driver_name;
-        }
-
         /**
          * Detect and initialise the character used to quote identifiers
          * (table names, column names etc). If this has been specified
@@ -568,11 +550,13 @@
                 /*
                  * When execute return false, it need to check errorCode, if mysql has gone away reconnect.
                  */
-                $errCode = $statement->errorInfo()[1] ?? 0;
-                $errMsg = $statement->errorInfo()[2] ?? '';
+                $err_code = $statement->errorInfo()[1] ?? 0;
+                $err_msg = $statement->errorInfo()[2] ?? '';
 
-                \Log::info('jidiorm error:', ['code' => $errCode, 'message' => $errMsg, 'driverName' => self::getDriverName($connection_name)]);
-                if (($errCode == 2006 || $errCode == 2013) && $retryTimes == 0 && self::getDriverName($connection_name) == 'mysql') {
+                $driver_name = self::get_db($connection_name)->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+                \Log::info('jidiorm error:', ['code' => $err_code, 'message' => $err_msg, 'driverName' => $driver_name]);
+                if (($err_code == 2006 || $err_code == 2013) && $retryTimes == 0 && $driver_name == 'mysql') {
                     self::reconnect_db($connection_name);
                     self::_execute($query. $parameters, $connection_name, 1);
                 } else {
