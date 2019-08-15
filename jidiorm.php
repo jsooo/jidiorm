@@ -576,7 +576,7 @@ class ORM implements ArrayAccess
             \Log::info('jidiorm error:', ['code' => $err_code, 'message' => $err_msg, 'driverName' => $driver_name]);
             if (($err_code == 2006 || $err_code == 2013) && $retryTimes == 0 && $driver_name == 'mysql') {
                 self::reconnect_db($connection_name);
-                self::_execute($query . $parameters, $connection_name, 1);
+                self::_execute($query, $parameters, $connection_name, 1);
             } else {
                 throw $e;
             }
